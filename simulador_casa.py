@@ -1,16 +1,22 @@
-#docker compose up -d     
-#python3 simulador_casa.py
+"""Simulador de una casa IoT que genera datos de sensores y los envía a InfluxDB."""
 
 import time
 import math
 import random
+import os
 from datetime import datetime
 import requests
+from dotenv import load_dotenv
 
 # ==============================
 # Cargar configuración segura
 # ==============================
-from config_influx import INFLUX_URL, INFLUX_TOKEN, INFLUX_ORG, INFLUX_BUCKET
+load_dotenv()
+
+INFLUX_URL = os.getenv("INFLUX_URL")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
+INFLUX_ORG = os.getenv("INFLUX_ORG")
+INFLUX_BUCKET = os.getenv("INFLUX_BUCKET")
 
 
 def write_to_influx(measurement, tags, fields, timestamp=None):
@@ -45,11 +51,11 @@ def write_to_influx(measurement, tags, fields, timestamp=None):
     }
 
     try:
-        r = requests.post(INFLUX_URL, params=params, data=line.encode("utf-8"), headers=headers)
+        r = requests.post(INFLUX_URL, params=params, data=line.encode("utf-8"), headers=headers, timeout=10)
         if r.status_code != 204:
             print("⚠️ Error enviando a InfluxDB:", r.status_code, r.text)
-    except Exception as e:
-        print("⚠️ Excepción al enviar a InfluxDB:", e)
+    except requests.exceptions.RequestException as e:
+        print("⚠️ Error de conexión a InfluxDB:", e)
 
 
 # ==============================
@@ -60,6 +66,9 @@ ROOMS = ["salon", "dormitorio", "cocina", "bano"]
 
 
 def simulate_temperature(room, hour):
+    """
+    Simula la temperatura en función de la hora del día y la habitación.
+    """
     base_daily = 20 + 4 * math.sin(2 * math.pi * (hour - 14) / 24)
     room_offset = {
         "salon": 1.0,
@@ -71,7 +80,10 @@ def simulate_temperature(room, hour):
     return round(base_daily + room_offset + noise, 1)
 
 
-def simulate_lights(room, hour):
+def simulate_lights(_, hour):
+    """
+    Simula si las luces están encendidas o apagadas en función de la hora del día y la habitación.
+    """
     if 8 <= hour < 18:
         prob_on = 0.15
     elif 18 <= hour < 23:
@@ -82,6 +94,9 @@ def simulate_lights(room, hour):
 
 
 def simulate_power_usage(room, lights_on):
+    """
+    Simula el consumo de energía en función de la habitación y si las luces están encendidas.
+    """
     base_power = {
         "salon": 60,
         "dormitorio": 20,
@@ -101,14 +116,20 @@ def simulate_power_usage(room, lights_on):
 
 
 def simulate_water_flow(room):
+    """
+    Simula el flujo de agua en función de la habitación.
+    """
     if room == "cocina" and random.random() < 0.1:
         return round(random.uniform(2, 8), 1)
-    elif room == "bano" and random.random() < 0.15:
+    if room == "bano" and random.random() < 0.15:
         return round(random.uniform(3, 12), 1)
     return 0.0
 
 
 def simulate_house_once():
+    """
+    Simula una lectura de sensores en todas las habitaciones de la casa.
+    """
     now = datetime.now()
     hour = now.hour + now.minute / 60.0
 
