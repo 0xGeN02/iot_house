@@ -24,7 +24,6 @@ services:
     depends_on:
       - influxdb
       
-
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n_iot
@@ -32,6 +31,11 @@ services:
       - "5678:5678"
     environment:
       - N8N_GENERIC_TIMEZONE=Europe/Madrid
+      - WEATHER_API=${WEATHER_API}
+      - DISCORD_WEBHOOK=${DISCORD_WEBHOOK}
+      - INFLUX_BUCKET=${INFLUX_BUCKET}
+      - INFLUX_ORG=${INFLUX_ORG}
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
     volumes:
       - ./n8n-data:/home/node/.n8n
     depends_on:

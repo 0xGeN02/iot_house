@@ -1,0 +1,195 @@
+{
+  "name": "Weather N8N",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "60a38b93-3129-484a-b65c-ec28f68cd7c7",
+      "name": "Start WorkFlow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f9e9c5d-b161-4db8-96a7-d4d01d1802f6",
+              "name": "MY_CITY",
+              "value": "Lugo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b006d544-2000-478c-a438-8049653fa7cf",
+      "name": "ENVIROMENT"
+    },
+    {
+      "parameters": {
+        "url": "=http://api.weatherapi.com/v1/current.json?key={{$env.WEATHER_API}}&q={{$json.MY_CITY}}&lang=es",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "344953ec-060f-47bd-b7b8-5eab813da81c",
+      "name": "Weather API HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b3e3df24-9634-469f-9cb9-0cb90a886733",
+              "name": "alerta",
+              "value": "={{   $json[\"current\"][\"condition\"][\"text\"] == \"Lluvia\"    ? \"🌧️ ¡Está lloviendo en \" + $json[\"location\"][\"name\"] + \"! \\n\" +      \"🌡️ \" + $json[\"current\"][\"temp_c\"] + \"°C | 💧 \" + $json[\"current\"][\"humidity\"] + \"% humedad | 💨 \" + $json[\"current\"][\"wind_kph\"] + \" km/h viento\"    : $json[\"current\"][\"temp_c\"] > 30      ? \"🔥 ¡Hace calor en \" + $json[\"location\"][\"name\"] + \"! \\n\" +        \"🌡️ \" + $json[\"current\"][\"temp_c\"] + \"°C | 💧 \" + $json[\"current\"][\"humidity\"] + \"% humedad | 💨 \" + $json[\"current\"][\"wind_kph\"] + \" km/h viento\"      : \"🌤️ El tiempo en \" + $json[\"location\"][\"name\"] + \"\\n\" +        \"⛅ \" + $json[\"current\"][\"condition\"][\"text\"] + \" | \" +        \"🌡️ \" + $json[\"current\"][\"temp_c\"] + \"°C | 💧 \" + $json[\"current\"][\"humidity\"] + \"% | 💨 \" + $json[\"current\"][\"wind_kph\"] + \" km/h\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "6e4a09d8-bd00-4f0a-a251-367652accd62",
+      "name": "Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://influxdb_iot:8086/api/v2/write?org={{ $env.INFLUX_ORG }}&bucket={{ $env.INFLUX_BUCKET }}&precision=s",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{ $env.INFLUX_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "=weather_alert,city={{$json[\"location\"][\"name\"].replace(/ /g, \"_\")}} alerta=\"{{ $json[\"alerta\"] }}\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        848,
+        160
+      ],
+      "id": "716c8006-f187-4fa2-81ab-3bb4b014a65d",
+      "name": "InfluxDB HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "=POST",
+        "url": "=https://discord.com/{{ $env.DISCORD_WEBHOOK }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{$json[\"alerta\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "5f96ace5-3374-43bd-b27e-b5d5cec9acfd",
+      "name": "DISCORD HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start WorkFlow": {
+      "main": [
+        [
+          {
+            "node": "ENVIROMENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ENVIROMENT": {
+      "main": [
+        [
+          {
+            "node": "Weather API HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather API HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message": {
+      "main": [
+        [
+          {
+            "node": "DISCORD HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "InfluxDB HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISCORD HTTP Request": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5aae3c8a-136b-444e-89e4-664815ba4661",
+  "meta": {
+    "instanceId": "07475b5c3f09b67a8e0e573403d795dc7a9d1a3c2d4e3576e067fe2047edb862"
+  },
+  "id": "Ngqh0SuYRgUn2GEO",
+  "tags": []
+}

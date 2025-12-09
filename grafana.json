@@ -37,8 +37,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
-                "value": null
+                "color": "dark-blue"
               },
               {
                 "color": "light-blue",
@@ -111,8 +110,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
-                "value": null
+                "color": "dark-blue"
               },
               {
                 "color": "light-blue",
@@ -185,8 +183,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
-                "value": null
+                "color": "dark-blue"
               },
               {
                 "color": "light-blue",
@@ -259,8 +256,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
-                "value": null
+                "color": "dark-blue"
               },
               {
                 "color": "blue",
@@ -333,8 +329,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-purple",
-                "value": null
+                "color": "super-light-purple"
               },
               {
                 "color": "semi-dark-purple",
@@ -414,8 +409,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -492,8 +486,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -570,8 +563,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -648,8 +640,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -740,8 +731,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -894,8 +884,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1018,8 +1007,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
-                "value": null
+                "color": "dark-blue"
               }
             ]
           },
@@ -1077,8 +1065,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "semi-dark-purple",
-                "value": null
+                "color": "semi-dark-purple"
               }
             ]
           },
@@ -1102,7 +1089,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^kWh \\{_start=\"2025\\-12\\-08 21:24:26\\.517602988 \\+0000 UTC\", _stop=\"2025\\-12\\-09 21:24:26\\.517602988 \\+0000 UTC\"\\}$/",
+          "fields": "/^_value \\{_start=\"2025\\-12\\-08 23:39:31\\.688361409 \\+0000 UTC\", _stop=\"2025\\-12\\-09 23:39:31\\.688361409 \\+0000 UTC\"\\}$/",
           "values": false
         },
         "textMode": "auto"
@@ -1120,6 +1107,73 @@
       ],
       "title": "Consumo total de energía",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ec8678e2-1616-42ec-9336-01a1f0d0f968"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ec8678e2-1616-42ec-9336-01a1f0d0f968"
+          },
+          "query": "from(bucket: \"iot_home\")\n  |> range(start: -1d)\n  |> filter(fn: (r) => r._measurement == \"weather_alert\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Weather Alerts",
+      "type": "table"
     }
   ],
   "refresh": "",
@@ -1130,13 +1184,13 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "iot_home",
   "uid": "af789205-6aee-4bae-8c6a-c94459695c46",
-  "version": 19,
+  "version": 25,
   "weekStart": ""
 }
