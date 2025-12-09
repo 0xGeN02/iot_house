@@ -1,5 +1,9 @@
 """Simulador de una casa IoT que genera datos de sensores y los envía a InfluxDB."""
 
+#http://localhost:8086
+#http://localhost:3000
+
+
 import time
 import math
 import random
