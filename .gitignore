@@ -2,3 +2,5 @@
 config_influx.py
 __pycache__/
 influxdb-data/
+
+n8n-data/
