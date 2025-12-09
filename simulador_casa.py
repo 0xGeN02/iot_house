@@ -4,8 +4,6 @@
 #http://localhost:3000
 #http://localhost:5678
 
-
-
 import time
 import math
 import random
@@ -25,7 +23,7 @@ INFLUX_ORG = os.getenv("INFLUX_ORG")
 INFLUX_BUCKET = os.getenv("INFLUX_BUCKET")
 
 
-def write_to_influx(measurement, tags, fields, timestamp=None):
+def write_to_influx(measurement, tags, fields, timestamp=None) -> None:
     """
     Envía una línea a InfluxDB en formato Line Protocol.
     """
@@ -71,22 +69,22 @@ def write_to_influx(measurement, tags, fields, timestamp=None):
 ROOMS = ["salon", "dormitorio", "cocina", "bano"]
 
 
-def simulate_temperature(room, hour):
+def simulate_temperature(room, hour) -> float:
     """
     Simula la temperatura en función de la hora del día y la habitación.
     """
-    base_daily = 20 + 4 * math.sin(2 * math.pi * (hour - 14) / 24)
+    base_daily = 20 + 2 * math.sin(2 * math.pi * (hour - 14) / 24)
     room_offset = {
-        "salon": 1.0,
-        "dormitorio": -0.5,
-        "cocina": 1.5,
-        "bano": 0.0,
+        "salon": -1.5,
+        "dormitorio": 1.5,
+        "cocina": 3.5,
+        "bano": -4.5,
     }.get(room, 0.0)
     noise = random.uniform(-0.5, 0.5)
     return round(base_daily + room_offset + noise, 1)
 
 
-def simulate_lights(_, hour):
+def simulate_lights(_, hour) -> int:
     """
     Simula si las luces están encendidas o apagadas en función de la hora del día y la habitación.
     """
@@ -99,7 +97,7 @@ def simulate_lights(_, hour):
     return 1 if random.random() < prob_on else 0
 
 
-def simulate_power_usage(room, lights_on):
+def simulate_power_usage(room, lights_on) -> float:
     """
     Simula el consumo de energía en función de la habitación y si las luces están encendidas.
     """
@@ -121,18 +119,19 @@ def simulate_power_usage(room, lights_on):
     return round(base_power + lights_power + peak_power, 1)
 
 
-def simulate_water_flow(room):
+def simulate_water_flow(_) -> float:
     """
     Simula el flujo de agua en función de la habitación.
     """
-    if room == "cocina" and random.random() < 0.1:
-        return round(random.uniform(2, 8), 1)
-    if room == "bano" and random.random() < 0.15:
-        return round(random.uniform(3, 12), 1)
+    # Genera valores aleatorios de consumo de agua en L/min
+    valores = valores = [0.0, 1.5, 2.4, 3.7, 5.0, 7.3, 8.8, 10.1, 11.6]
+    # Probabilidad de que haya consumo en cada ciclo
+    if random.random() < 0.5:
+        return random.choice(valores)
     return 0.0
 
 
-def simulate_house_once():
+def simulate_house_once() -> list:
     """
     Simula una lectura de sensores en todas las habitaciones de la casa.
     """
@@ -159,7 +158,10 @@ def simulate_house_once():
     return readings
 
 
-def main():
+def main() -> None:
+    """
+    Docstring for main
+    """
     print("Iniciando simulación de casa IoT (Ctrl+C para detener)...\n")
     while True:
         readings = simulate_house_once()

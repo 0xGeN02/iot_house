@@ -5,7 +5,6 @@ y muestra una simulación 2D de la casa con los sensores."""
 #http://localhost:3000
 #http://localhost:5678
 
-import time
 import math
 import random
 import os
