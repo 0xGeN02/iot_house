@@ -3,3 +3,5 @@ config_influx.py
 __pycache__/
 influxdb-data/
 grafana-data/
+n8n-data/
+
