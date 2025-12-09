@@ -42,10 +42,10 @@ def write_to_influx(measurement, tags, fields, timestamp=None):
     line += " "
     field_parts = []
     for k, v in fields.items():
-            if isinstance(v, str):
-                field_parts.append(f'{k}="{v}"')
-            else:
-                field_parts.append(f"{k}={v}")
+        if isinstance(v, str):
+            field_parts.append(f'{k}="{v}"')
+        else:
+            field_parts.append(f"{k}={v}")
     line += ",".join(field_parts)
 
     if timestamp is not None:
@@ -149,7 +149,6 @@ def simulate_water_flow(room):
     return 0.0
 
 
-
 def simulate_house_once():
     """
     Simula una lectura de sensores en todas las habitaciones de la casa.
@@ -232,20 +231,45 @@ class HouseGUI:
     def __init__(self, update_interval_ms=5000):
         self.update_interval_ms = update_interval_ms
 
+        # =======================
+        # Ventana principal y layout
+        # =======================
         self.root = tk.Tk()
         self.root.title("Simulación Casa IoT - Plano 2D")
 
-        self.canvas = tk.Canvas(self.root, width=900, height=650, bg="white")
-        self.canvas.pack(fill="both", expand=True)
+        # Modo de simulación: "auto" o "manual"
+        self.mode = tk.StringVar(value="auto")
+
+        # Variables de control manual por habitación
+        self.manual_temperature = {}
+        self.manual_lights = {}
+        self.manual_power = {}
+        self.manual_water = {}
+        self.manual_widgets = []
+
+        # Marco principal: plano a la izquierda, panel de control a la derecha
+        self.main_frame = tk.Frame(self.root, bg="white")
+        self.main_frame.pack(fill="both", expand=True)
+
+        # Canvas para el plano
+        self.canvas = tk.Canvas(self.main_frame, width=900, height=650, bg="white")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Panel lateral derecho para controles
+        self.control_frame = tk.Frame(self.main_frame, width=320, bg="white")
+        self.control_frame.pack(side="right", fill="y")
 
         self.font_title = tkfont.Font(family="Helvetica", size=16, weight="bold")
         self.font_info = tkfont.Font(family="Helvetica", size=11)
+        self.font_small = tkfont.Font(family="Helvetica", size=9)
 
         # Diccionarios para acceder rápidamente a los elementos del canvas
         self.room_rects = {}
         self.room_texts = {}
 
+        # Dibujar plano y construir panel de control
         self._draw_house_layout()
+        self._build_control_panel()
 
         # Arrancamos la primera actualización
         self.root.after(200, self.update_simulation)
@@ -307,11 +331,212 @@ class HouseGUI:
             self.room_rects[room] = rect
             self.room_texts[room] = text_id
 
+    def _build_control_panel(self):
+        """
+        Construye el panel lateral derecho con:
+        - Selector de modo (automático / manual)
+        - Controles manuales por habitación (luces, temperatura, potencia, agua)
+        """
+        # Selector de modo
+        mode_frame = tk.LabelFrame(
+            self.control_frame,
+            text="Modo de simulación",
+            bg="white",
+            font=self.font_info
+        )
+        mode_frame.pack(fill="x", padx=10, pady=(15, 5))
+
+        rb_auto = tk.Radiobutton(
+            mode_frame,
+            text="Automático",
+            variable=self.mode,
+            value="auto",
+            bg="white",
+            font=self.font_small,
+            command=self.on_mode_change
+        )
+        rb_manual = tk.Radiobutton(
+            mode_frame,
+            text="Manual",
+            variable=self.mode,
+            value="manual",
+            bg="white",
+            font=self.font_small,
+            command=self.on_mode_change
+        )
+        rb_auto.pack(anchor="w", padx=5, pady=2)
+        rb_manual.pack(anchor="w", padx=5, pady=2)
+
+        # No añadimos los radio buttons a manual_widgets porque deben seguir activos
+        # siempre para poder cambiar de modo.
+
+        # Separador visual
+        sep = tk.Frame(self.control_frame, height=2, bg="#cccccc")
+        sep.pack(fill="x", padx=10, pady=(5, 10))
+
+        # Controles por habitación
+        for room in ROOMS:
+            lf = tk.LabelFrame(
+                self.control_frame,
+                text=ROOM_LABELS.get(room, room.capitalize()),
+                bg="white",
+                font=self.font_info
+            )
+            lf.pack(fill="x", padx=10, pady=5)
+            self.manual_widgets.append(lf)
+
+            # Luces
+            lights_var = tk.BooleanVar(value=False)
+            self.manual_lights[room] = lights_var
+            chk = tk.Checkbutton(
+                lf,
+                text="Luces encendidas",
+                variable=lights_var,
+                bg="white",
+                font=self.font_small,
+                command=lambda r=room: self._update_room_visual_from_manual(r)
+            )
+            chk.pack(anchor="w", padx=5, pady=(3, 6))
+            self.manual_widgets.append(chk)
+
+            # Temperatura
+            temp_var = tk.DoubleVar(value=21.0)
+            self.manual_temperature[room] = temp_var
+            tk.Label(
+                lf,
+                text="Temperatura (°C)",
+                bg="white",
+                font=self.font_small
+            ).pack(anchor="w", padx=5)
+            temp_scale = tk.Scale(
+                lf,
+                from_=15,
+                to=30,
+                orient="horizontal",
+                resolution=0.5,
+                variable=temp_var,
+                length=200,
+                command=lambda _val, r=room: self._update_room_visual_from_manual(r),
+                bg="white"
+            )
+            temp_scale.pack(anchor="w", padx=5)
+            self.manual_widgets.append(temp_scale)
+
+            # Potencia
+            power_var = tk.DoubleVar(value=50.0)
+            self.manual_power[room] = power_var
+            tk.Label(
+                lf,
+                text="Potencia (W)",
+                bg="white",
+                font=self.font_small
+            ).pack(anchor="w", padx=5, pady=(5, 0))
+            power_scale = tk.Scale(
+                lf,
+                from_=0,
+                to=2000,
+                orient="horizontal",
+                resolution=10,
+                variable=power_var,
+                length=200,
+                command=lambda _val, r=room: self._update_room_visual_from_manual(r),
+                bg="white"
+            )
+            power_scale.pack(anchor="w", padx=5)
+            self.manual_widgets.append(power_scale)
+
+            # Agua solo en cocina y baño
+            if room in ("cocina", "bano"):
+                water_var = tk.DoubleVar(value=0.0)
+                self.manual_water[room] = water_var
+                tk.Label(
+                    lf,
+                    text="Flujo de agua (L/min)",
+                    bg="white",
+                    font=self.font_small
+                ).pack(anchor="w", padx=5, pady=(5, 0))
+                water_scale = tk.Scale(
+                    lf,
+                    from_=0.0,
+                    to=15.0,
+                    orient="horizontal",
+                    resolution=0.5,
+                    variable=water_var,
+                    length=200,
+                    command=lambda _val, r=room: self._update_room_visual_from_manual(r),
+                    bg="white"
+                )
+                water_scale.pack(anchor="w", padx=5, pady=(0, 5))
+                self.manual_widgets.append(water_scale)
+
+        # Al inicio, los controles manuales están deshabilitados porque el modo es "auto"
+        self._set_manual_controls_state(enabled=False)
+
+    def _set_manual_controls_state(self, enabled: bool):
+        """
+        Activa o desactiva todos los controles manuales (sliders, checkboxes).
+        Los radio buttons de modo quedan siempre activos.
+        """
+        state = "normal" if enabled else "disabled"
+        for widget in self.manual_widgets:
+            try:
+                widget.configure(state=state)
+            except tk.TclError:
+                # Algunos contenedores pueden no aceptar 'state'
+                pass
+
+    def on_mode_change(self):
+        """
+        Callback al cambiar entre modo automático y manual.
+        """
+        manual = self.mode.get() == "manual"
+        self._set_manual_controls_state(enabled=manual)
+
+        # Si cambiamos a manual, actualizamos el plano inmediatamente
+        if manual:
+            for room in ROOMS:
+                self._update_room_visual_from_manual(room)
+
+    def _build_manual_readings(self, now: datetime):
+        """
+        Construye las lecturas a partir de los valores seleccionados manualmente
+        en la interfaz.
+        """
+        readings = []
+        timestamp = now.isoformat(timespec="seconds")
+
+        for room in ROOMS:
+            temp = float(self.manual_temperature[room].get())
+            lights_on = 1 if self.manual_lights[room].get() else 0
+            power = float(self.manual_power[room].get())
+
+            if room in ("cocina", "bano"):
+                water = float(self.manual_water[room].get())
+            else:
+                water = 0.0
+
+            readings.append({
+                "timestamp": timestamp,
+                "room": room,
+                "temperature": temp,
+                "lights_on": lights_on,
+                "power_usage": power,
+                "water_flow": water,
+            })
+
+        return readings
+
     def update_simulation(self):
         """
-        Llama a la simulación, envía datos a InfluxDB y actualiza el plano.
+        Llama a la simulación (automática o manual), envía datos a InfluxDB
+        y actualiza el plano.
         """
-        readings = simulate_house_once()
+        now = datetime.now()
+
+        if self.mode.get() == "auto":
+            readings = simulate_house_once()
+        else:
+            readings = self._build_manual_readings(now)
 
         print("-" * 80)
         for r in readings:
@@ -350,9 +575,49 @@ class HouseGUI:
         # Reprogramar siguiente actualización
         self.root.after(self.update_interval_ms, self.update_simulation)
 
+    def _update_room_visual_from_manual(self, room):
+        """
+        Actualiza visualmente una habitación usando los valores manuales,
+        pero solo si el modo actual es 'manual'.
+        """
+        if self.mode.get() != "manual":
+            return
+
+        rect_id = self.room_rects.get(room)
+        text_id = self.room_texts.get(room)
+        if rect_id is None or text_id is None:
+            return
+
+        temp = float(self.manual_temperature[room].get())
+        lights_on = 1 if self.manual_lights[room].get() else 0
+        power = float(self.manual_power[room].get())
+        if room in ("cocina", "bano"):
+            water = float(self.manual_water[room].get())
+        else:
+            water = 0.0
+
+        fill_color = temperature_to_color(temp)
+        outline_color = "gold" if lights_on else "black"
+
+        self.canvas.itemconfig(rect_id, fill=fill_color, outline=outline_color)
+
+        label = ROOM_LABELS.get(room, room.capitalize())
+        lights_str = "ON" if lights_on else "OFF"
+        lights_icon = "💡" if lights_on else "💤"
+
+        text = (
+            f"{label} {lights_icon}\n\n"
+            f"T: {temp:.1f} °C\n"
+            f"Luz: {lights_str}\n"
+            f"Potencia: {power:.0f} W\n"
+            f"Agua: {water:.1f} L/min"
+        )
+        self.canvas.itemconfig(text_id, text=text)
+
     def _update_room_visual(self, reading):
         """
-        Actualiza el rectángulo y el texto de una habitación concreta.
+        Actualiza el rectángulo y el texto de una habitación concreta
+        a partir de una lectura (modo automático o manual).
         """
         room = reading["room"]
         if room not in self.room_rects:
