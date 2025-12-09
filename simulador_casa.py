@@ -1,6 +1,10 @@
 #docker compose up -d     
 #python3 simulador_casa.py
 
+#http://localhost:8086
+#http://localhost:3000
+
+
 import time
 import math
 import random

@@ -15,3 +15,14 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=UIE
       - DOCKER_INFLUXDB_INIT_BUCKET=iot_home
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=MI_SUPER_TOKEN_IOT
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana_iot
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    depends_on:
+      - influxdb
+      
