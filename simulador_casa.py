@@ -5,6 +5,7 @@ from datetime import datetime
 
 ROOMS = ["salon", "dormitorio", "cocina", "bano"]
 
+
 def simulate_temperature(room, hour):
     """
     Temperatura simulada en función de la hora del día y de la habitación.
