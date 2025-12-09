@@ -42,10 +42,10 @@ def write_to_influx(measurement, tags, fields, timestamp=None):
     line += " "
     field_parts = []
     for k, v in fields.items():
-        if isinstance(v, str):
-            field_parts.append(f'{k}="{v}"')
-        else:
-            field_parts.append(f"{k}={v}")
+            if isinstance(v, str):
+                field_parts.append(f'{k}="{v}"')
+            else:
+                field_parts.append(f"{k}={v}")
     line += ",".join(field_parts)
 
     if timestamp is not None:
@@ -175,15 +175,27 @@ def simulate_house_once():
 # GUI: Plano 2D de la casa
 # ==============================
 
-# Definimos un plano sencillo 2D de la casa (coherente con una casa normal)
-# Ventana de ~800x600 con habitaciones tipo:
-# [   SALÓN    |  COCINA   ]
-# [DORMITORIO |   BAÑO    ]
+# Definimos un plano 2x2 continuo:
+#  -----------------------------------------
+# |                |                       |
+# |     SALÓN      |        COCINA         |
+# |                |                       |
+# |----------------+-----------------------|
+# |                |                       |
+# |  DORMITORIO    |         BAÑO          |
+# |                |                       |
+#  -----------------------------------------
+HOUSE_BOUNDS = (80, 80, 760, 560)  # borde exterior de la casa
+
+x1_house, y1_house, x2_house, y2_house = HOUSE_BOUNDS
+mid_x = (x1_house + x2_house) // 2
+mid_y = (y1_house + y2_house) // 2
+
 ROOM_LAYOUT = {
-    "salon":      (50, 50, 380, 260),
-    "cocina":     (420, 50, 750, 260),
-    "dormitorio": (50, 300, 380, 550),
-    "bano":       (420, 300, 750, 450),
+    "salon":      (x1_house, y1_house, mid_x,   mid_y),
+    "cocina":     (mid_x,    y1_house, x2_house, mid_y),
+    "dormitorio": (x1_house, mid_y,    mid_x,   y2_house),
+    "bano":       (mid_x,    mid_y,    x2_house, y2_house),
 }
 
 ROOM_LABELS = {
@@ -205,7 +217,7 @@ def temperature_to_color(temp):
     n = max(0.0, min(1.0, n))
     # Interpolamos entre azul (0) y rojo (1)
     r = int(255 * n)
-    g = int(80 * (1 - n) + 80 * n)  # un poco de verde para no ser tan chillón
+    g = int(80 * (1 - n) + 80 * n)  # un poco de verde para suavizar
     b = int(255 * (1 - n))
     return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -217,10 +229,10 @@ class HouseGUI:
         self.root = tk.Tk()
         self.root.title("Simulación Casa IoT - Plano 2D")
 
-        self.canvas = tk.Canvas(self.root, width=820, height=600, bg="white")
+        self.canvas = tk.Canvas(self.root, width=900, height=650, bg="white")
         self.canvas.pack(fill="both", expand=True)
 
-        self.font_title = tkfont.Font(family="Helvetica", size=14, weight="bold")
+        self.font_title = tkfont.Font(family="Helvetica", size=16, weight="bold")
         self.font_info = tkfont.Font(family="Helvetica", size=11)
 
         # Diccionarios para acceder rápidamente a los elementos del canvas
@@ -234,18 +246,50 @@ class HouseGUI:
 
     def _draw_house_layout(self):
         """
-        Dibuja las habitaciones como rectángulos con su nombre.
+        Dibuja las paredes de la casa y las habitaciones como un plano continuo.
         """
-        for room, (x1, y1, x2, y2) in ROOM_LAYOUT.items():
+        # Título
+        self.canvas.create_text(
+            450, 30,
+            text="Plano 2D - Casa IoT",
+            font=self.font_title
+        )
+
+        # Borde exterior de la casa (pared exterior más gruesa)
+        x1, y1, x2, y2 = HOUSE_BOUNDS
+        self.canvas.create_rectangle(
+            x1, y1, x2, y2,
+            outline="black",
+            width=5
+        )
+
+        # Paredes interiores (división 2x2)
+        # Pared vertical central
+        self.canvas.create_line(
+            mid_x, y1, mid_x, y2,
+            fill="black",
+            width=3
+        )
+        # Pared horizontal central
+        self.canvas.create_line(
+            x1, mid_y, x2, mid_y,
+            fill="black",
+            width=3
+        )
+
+        # Dibujo de habitaciones (rectángulos coloreables encima del plano)
+        for room, (rx1, ry1, rx2, ry2) in ROOM_LAYOUT.items():
+            # Rectángulo para el color de temperatura + borde para "luces"
             rect = self.canvas.create_rectangle(
-                x1, y1, x2, y2,
+                rx1 + 3, ry1 + 3, rx2 - 3, ry2 - 3,
                 fill="#d9eaf7",
                 outline="black",
                 width=2
             )
+
             # Texto centrado dentro de la habitación
-            cx = (x1 + x2) / 2
-            cy = (y1 + y2) / 2
+            cx = (rx1 + rx2) / 2
+            cy = (ry1 + ry2) / 2
             label = ROOM_LABELS.get(room, room.capitalize())
             text_id = self.canvas.create_text(
                 cx, cy,
@@ -256,13 +300,6 @@ class HouseGUI:
 
             self.room_rects[room] = rect
             self.room_texts[room] = text_id
-
-        # Título arriba
-        self.canvas.create_text(
-            410, 20,
-            text="Plano 2D - Sensores Casa IoT",
-            font=self.font_title
-        )
 
     def update_simulation(self):
         """
@@ -327,8 +364,10 @@ class HouseGUI:
 
         label = ROOM_LABELS.get(room, room.capitalize())
         lights_str = "ON" if reading["lights_on"] else "OFF"
+        lights_icon = "💡" if reading["lights_on"] else "💤"
+
         text = (
-            f"{label}\n\n"
+            f"{label} {lights_icon}\n\n"
             f"T: {reading['temperature']} °C\n"
             f"Luz: {lights_str}\n"
             f"Potencia: {reading['power_usage']} W\n"
@@ -341,7 +380,7 @@ class HouseGUI:
 
 
 def main():
-    print("Iniciando simulación de casa IoT con plano 2D (Ctrl+C para detener ventana)...\n")
+    print("Iniciando simulación de casa IoT con plano 2D (Ctrl+C para cerrar la ventana)...\n")
     gui = HouseGUI(update_interval_ms=5000)  # 5 segundos entre lecturas
     gui.run()
 
