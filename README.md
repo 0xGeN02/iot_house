@@ -28,7 +28,7 @@ El sistema se compone de:
 ### 1. Clona el repositorio y accede a la carpeta
 
 ```bash
-git clone <repo_url>
+git clone git@github.com:0xGeN02/iot_house.git
 cd iot_house
 ```
 
@@ -111,5 +111,7 @@ El sistema simula eventos como cambios de temperatura, presencia o condiciones m
 
 ## Créditos
 
-Autor: 0xGeN02
+Autor: 0xGeN02  
 Proyecto para entrega final de la asignatura.
+
+Repositorio en GitHub: [https://github.com/0xGeN02/iot_house](https://github.com/0xGeN02/iot_house)
