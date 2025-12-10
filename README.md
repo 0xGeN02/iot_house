@@ -116,7 +116,7 @@ El sistema simula eventos como cambios de temperatura, presencia o condiciones m
 
 ## Créditos
 
-Autor: 0xGeN02  
+Autores: Manuel Mateo Delgado Gambino López y Carlos Illán Aldariz 
 Proyecto para entrega final de la asignatura.
 
 Repositorio en GitHub: [https://github.com/0xGeN02/iot_house](https://github.com/0xGeN02/iot_house)
