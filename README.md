@@ -72,6 +72,7 @@ El flujo de trabajo de n8n (ver `WeatherN8N.json`) automatiza la obtención y el
 2. **Procesamiento y formato**: El flujo transforma los datos recibidos y genera un mensaje descriptivo (por ejemplo, alerta de lluvia, calor extremo, etc.).
 3. **Envío a InfluxDB**: Los datos meteorológicos se envían a InfluxDB, integrándose con los datos de los sensores simulados de la casa.
 4. **Notificación a Discord**: Si se cumplen ciertas condiciones (lluvia, calor, etc.), n8n envía una alerta al canal de Discord configurado, permitiendo recibir notificaciones en tiempo real.
+   - **¿Cómo llega la notificación a Discord?**: n8n utiliza el nodo "Discord" o realiza una petición HTTP al webhook de Discord configurado. Cuando se detecta una condición relevante (por ejemplo, lluvia), el flujo genera un mensaje y lo envía automáticamente al canal de Discord, donde los usuarios pueden recibir la alerta instantáneamente en su servidor.
 5. **Visualización en Grafana**: Todos los datos almacenados en InfluxDB (tanto de sensores como meteorológicos) pueden ser visualizados y analizados en los dashboards de Grafana.
 
 ### Monitorización con Grafana
@@ -99,6 +100,10 @@ El sistema simula eventos como cambios de temperatura, presencia o condiciones m
 ### Ejemplo de simulación y monitorización
 
 ![Simulación y monitorización](images/WhatsApp%20Image%202025-12-10%20at%2000.39.58.jpeg)
+
+### Ejemplo de notificación meteorológica en Discord
+
+![Notificación meteorológica en Discord](images/251210_12h42m50s_screenshot.png)
 
 ## Dependencias principales
 
